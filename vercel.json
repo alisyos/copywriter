@@ -1,0 +1,18 @@
+{
+  "name": "copywriter-system",
+  "version": 2,
+  "regions": ["icn1"],
+  "env": {
+    "OPENAI_API_KEY": "@openai-api-key"
+  },
+  "build": {
+    "env": {
+      "OPENAI_API_KEY": "@openai-api-key"
+    }
+  },
+  "functions": {
+    "pages/api/generate-copy.ts": {
+      "maxDuration": 30
+    }
+  }
+} 
