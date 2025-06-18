@@ -4,6 +4,7 @@ export interface CommonFormData {
   purpose: string;
   industry: string;
   brandName: string;
+  productService: string;
   targetAudience: string;
   tone: string;
   mainBenefit?: string;

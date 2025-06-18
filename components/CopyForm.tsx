@@ -18,15 +18,29 @@ const PURPOSE_OPTIONS = [
 ];
 
 const INDUSTRY_OPTIONS = [
-  '뷰티', '교육', 'IT/SaaS', '헬스케어', '패션', '식품', '금융', '부동산', '여행', '기타'
+  '디지털/가전',
+  '가구/인테리어',
+  '생활/건강',
+  '패션의류',
+  '스포츠/레저',
+  '출산/육아',
+  '패션잡화',
+  '화장품/미용',
+  '식품',
+  '여가/생활편의',
+  '교육',
+  'IT/솔루션',
+  '부동산',
+  '금융',
+  '기타'
 ];
 
 const TONE_OPTIONS = [
   '포멀', '친근', '유머', '신뢰감', '임팩트', '감성적', '전문적', '캐주얼'
 ];
 
-const inputClassName = "w-full px-4 py-3 bg-white/80 backdrop-blur-sm border border-white/60 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md";
-const labelClassName = "block text-sm font-semibold text-slate-700 mb-3";
+const inputClassName = "w-full px-3 py-2 bg-white/80 backdrop-blur-sm border border-white/60 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 shadow-sm hover:shadow-md text-sm";
+const labelClassName = "block text-sm font-semibold text-slate-700 mb-1.5";
 
 export default function CopyForm({ onSubmit, isLoading }: Props) {
   const [mediaType, setMediaType] = useState<MediaType>('naver');
@@ -34,6 +48,7 @@ export default function CopyForm({ onSubmit, isLoading }: Props) {
     purpose: '',
     industry: '',
     brandName: '',
+    productService: '',
     targetAudience: '',
     tone: '',
     mainBenefit: '',
@@ -163,17 +178,17 @@ export default function CopyForm({ onSubmit, isLoading }: Props) {
   };
 
   return (
-    <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/40">
-      <div className="flex items-center space-x-3 mb-8">
-        <div className="w-10 h-10 bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl flex items-center justify-center">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <div className="bg-white/70 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/40">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="w-8 h-8 bg-gradient-to-r from-blue-600 to-purple-600 rounded-lg flex items-center justify-center">
+          <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
           </svg>
         </div>
-        <h2 className="text-2xl font-bold text-slate-800">광고 문구 생성</h2>
+        <h2 className="text-xl font-bold text-slate-800">광고 문구 생성</h2>
       </div>
       
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4">
         {/* 매체 선택 */}
         <div>
           <label className={labelClassName}>
@@ -235,9 +250,23 @@ export default function CopyForm({ onSubmit, isLoading }: Props) {
           <input
             type="text"
             className={inputClassName}
-            placeholder="브랜드 또는 서비스명"
+            placeholder="예: 삼성전자, 스타벅스, 나이키"
             value={formData.brandName}
             onChange={(e) => handleInputChange('brandName', e.target.value)}
+            required
+          />
+        </div>
+
+        <div>
+          <label className={labelClassName}>
+            상품/서비스 *
+          </label>
+          <input
+            type="text"
+            className={inputClassName}
+            placeholder="예: 갤럭시 S25, 아메리카노, 에어맥스 운동화"
+            value={formData.productService}
+            onChange={(e) => handleInputChange('productService', e.target.value)}
             required
           />
         </div>
@@ -305,7 +334,7 @@ export default function CopyForm({ onSubmit, isLoading }: Props) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-6 rounded-xl hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-lg"
+          className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 px-4 rounded-lg hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl font-semibold text-base"
         >
           {isLoading ? (
             <div className="flex items-center justify-center space-x-2">
