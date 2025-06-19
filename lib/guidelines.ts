@@ -1,5 +1,113 @@
 import { MediaGuideline, MediaType } from '../types';
 
+// 프롬프트에서 조건을 동적으로 파싱하는 함수
+export function parseGuidelinesFromPrompt(prompt: string): MediaGuideline {
+  const guideline: MediaGuideline = {
+    prohibitedWords: [],
+    requiredElements: [],
+    specialRules: []
+  };
+
+  // ###조건 섹션 추출
+  const conditionMatch = prompt.match(/###조건\s*([\s\S]*?)(?=###|$)/);
+  if (!conditionMatch) {
+    return guideline;
+  }
+
+  const conditionText = conditionMatch[1];
+  const lines = conditionText.split('\n').filter(line => line.trim());
+
+  for (const line of lines) {
+    const trimmedLine = line.trim();
+    
+    // 제목 글자수 조건 파싱
+    if (trimmedLine.includes('제목') && trimmedLine.includes('자')) {
+      const titleMatch = trimmedLine.match(/(\d+)[-–~](\d+)자/);
+      if (titleMatch) {
+        guideline.titleMinLength = parseInt(titleMatch[1]);
+        guideline.titleMaxLength = parseInt(titleMatch[2]);
+      } else {
+        const singleMatch = trimmedLine.match(/(\d+)자/);
+        if (singleMatch) {
+          guideline.titleMaxLength = parseInt(singleMatch[1]);
+        }
+      }
+    }
+    
+    // 설명 글자수 조건 파싱
+    if (trimmedLine.includes('설명') && trimmedLine.includes('자')) {
+      const descMatch = trimmedLine.match(/(\d+)[-–~](\d+)자/);
+      if (descMatch) {
+        guideline.descriptionMinLength = parseInt(descMatch[1]);
+        guideline.descriptionMaxLength = parseInt(descMatch[2]);
+      } else {
+        const singleMatch = trimmedLine.match(/(\d+)자/);
+        if (singleMatch) {
+          guideline.descriptionMaxLength = parseInt(singleMatch[1]);
+        }
+      }
+    }
+    
+    // 메인텍스트 글자수 조건 파싱
+    if (trimmedLine.includes('메인') && trimmedLine.includes('자')) {
+      const mainMatch = trimmedLine.match(/(\d+)[-–~](\d+)자/);
+      if (mainMatch) {
+        guideline.mainMaxLength = parseInt(mainMatch[2]);
+      } else {
+        const singleMatch = trimmedLine.match(/(\d+)자/);
+        if (singleMatch) {
+          guideline.mainMaxLength = parseInt(singleMatch[1]);
+        }
+      }
+    }
+    
+    // 서브텍스트 글자수 조건 파싱
+    if (trimmedLine.includes('서브') && trimmedLine.includes('자')) {
+      const subMatch = trimmedLine.match(/(\d+)[-–~](\d+)자/);
+      if (subMatch) {
+        guideline.subMaxLength = parseInt(subMatch[2]);
+      } else {
+        const singleMatch = trimmedLine.match(/(\d+)자/);
+        if (singleMatch) {
+          guideline.subMaxLength = parseInt(singleMatch[1]);
+        }
+      }
+    }
+    
+    // fullText 글자수 조건 파싱 (소셜미디어, 랜딩페이지)
+    if (trimmedLine.includes('fullText') && trimmedLine.includes('자')) {
+      const fullMatch = trimmedLine.match(/(\d+)[-–~](\d+)자/);
+      if (fullMatch) {
+        guideline.fullTextMinLength = parseInt(fullMatch[1]);
+        guideline.fullTextMaxLength = parseInt(fullMatch[2]);
+      }
+    }
+    
+    // 금지어 파싱
+    if (trimmedLine.includes('금지어') || trimmedLine.includes('금지')) {
+      // 따옴표나 쉼표로 구분된 금지어들 추출
+      const prohibitedMatch = trimmedLine.match(/['"]([^'"]+)['"]|([^,\s]+)/g);
+      if (prohibitedMatch) {
+        const words = prohibitedMatch
+          .map(word => word.replace(/['"]/g, '').trim())
+          .filter(word => word && !word.includes('금지') && !word.includes('등') && !word.includes('표현'));
+        guideline.prohibitedWords.push(...words);
+      }
+    }
+    
+    // 특수 규칙 추가
+    if (trimmedLine.startsWith('-') || trimmedLine.startsWith('•')) {
+      const rule = trimmedLine.replace(/^[-•]\s*/, '');
+      if (rule && !rule.includes('자') && !rule.includes('금지어')) {
+        guideline.specialRules.push(rule);
+      }
+    }
+  }
+
+  return guideline;
+}
+
+// 기존 하드코딩된 가이드라인 (fallback용)
 export const MEDIA_GUIDELINES: Record<MediaType, MediaGuideline> = {
   naver: {
     titleMinLength: 1,
@@ -35,6 +143,8 @@ export const MEDIA_GUIDELINES: Record<MediaType, MediaGuideline> = {
     ]
   },
   social: {
+    fullTextMinLength: 70,
+    fullTextMaxLength: 90,
     prohibitedWords: [
       '클릭베이트성 과장 표현'
     ],
@@ -47,6 +157,8 @@ export const MEDIA_GUIDELINES: Record<MediaType, MediaGuideline> = {
     ]
   },
   landing: {
+    fullTextMinLength: 60,
+    fullTextMaxLength: 100,
     prohibitedWords: [],
     requiredElements: ['후킹 요소'],
     specialRules: [
@@ -58,8 +170,8 @@ export const MEDIA_GUIDELINES: Record<MediaType, MediaGuideline> = {
   }
 };
 
-export function validateCopy(text: string, mediaType: MediaType, type: 'title' | 'description' | 'main' | 'sub' | 'full' = 'full'): { isValid: boolean; errors: string[] } {
-  const guidelines = MEDIA_GUIDELINES[mediaType];
+export function validateCopy(text: string, mediaType: MediaType, type: 'title' | 'description' | 'main' | 'sub' | 'full' = 'full', customGuideline?: MediaGuideline): { isValid: boolean; errors: string[] } {
+  const guidelines = customGuideline || MEDIA_GUIDELINES[mediaType];
   const errors: string[] = [];
 
   // 글자수 검증
@@ -90,6 +202,15 @@ export function validateCopy(text: string, mediaType: MediaType, type: 'title' |
   if (type === 'sub' && guidelines.subMaxLength) {
     if (text.length > guidelines.subMaxLength) {
       errors.push(`서브 텍스트가 ${guidelines.subMaxLength}자를 초과했습니다. (현재: ${text.length}자)`);
+    }
+  }
+
+  if (type === 'full') {
+    if (guidelines.fullTextMaxLength && text.length > guidelines.fullTextMaxLength) {
+      errors.push(`텍스트가 ${guidelines.fullTextMaxLength}자를 초과했습니다. (현재: ${text.length}자)`);
+    }
+    if (guidelines.fullTextMinLength && text.length < guidelines.fullTextMinLength) {
+      errors.push(`텍스트가 ${guidelines.fullTextMinLength}자 미만입니다. (현재: ${text.length}자)`);
     }
   }
 

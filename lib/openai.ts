@@ -1,7 +1,7 @@
 import OpenAI from 'openai';
 import { FormData, MediaType, GeneratedCopy, CopyResult } from '../types';
 import { generatePrompt, getPrompt } from './prompts';
-import { validateCopy } from './guidelines';
+import { validateCopy, parseGuidelinesFromPrompt } from './guidelines';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -9,24 +9,22 @@ const openai = new OpenAI({
 
 export async function generateCopyWithAI(mediaType: MediaType, formData: FormData): Promise<CopyResult> {
   try {
-    // 동적 시스템 프롬프트 로드
-    const systemPrompt = await getPrompt(mediaType);
-    const userPrompt = generatePrompt(mediaType, formData);
+    // 통합된 프롬프트 생성 (매체별 + 광고목적별 조합)
+    const fullPrompt = generatePrompt(mediaType, formData);
+    
+    // 프롬프트에서 가이드라인 동적 파싱
+    const dynamicGuideline = parseGuidelinesFromPrompt(fullPrompt);
     
     const completion = await openai.chat.completions.create({
       model: "gpt-4.1",
       messages: [
         {
-          role: "system",
-          content: systemPrompt
-        },
-        {
           role: "user",
-          content: userPrompt
+          content: fullPrompt
         }
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     const response = completion.choices[0]?.message?.content;
@@ -35,7 +33,7 @@ export async function generateCopyWithAI(mediaType: MediaType, formData: FormDat
     }
 
     const copies = parseCopyResponse(response, mediaType);
-    const validatedCopies = validateCopies(copies, mediaType);
+    const validatedCopies = validateCopies(copies, mediaType, dynamicGuideline);
 
     return {
       copies: validatedCopies.copies,
@@ -51,14 +49,39 @@ export async function generateCopyWithAI(mediaType: MediaType, formData: FormDat
 
 function parseCopyResponse(response: string, mediaType: MediaType): GeneratedCopy[] {
   try {
-    // JSON 형식의 응답을 파싱
+    // JSON 코드 블록에서 JSON 추출
     const jsonMatch = response.match(/```json\s*([\s\S]*?)\s*```/);
     if (jsonMatch) {
       const jsonStr = jsonMatch[1];
       const parsed = JSON.parse(jsonStr);
       
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        // 매체별로 적절한 형식으로 변환
+        return parsed.map((item: any) => {
+          switch (mediaType) {
+            case 'naver':
+              return {
+                title: item.title || '',
+                description: item.description || ''
+              };
+            case 'kakao':
+              return {
+                mainText: item.mainText || '',
+                subText: item.subText || ''
+              };
+            case 'social':
+              return {
+                fullText: item.fullText || ''
+              };
+            case 'landing':
+              return {
+                fullText: item.fullText || '',
+                type: item.type || 'general'
+              };
+            default:
+              return item;
+          }
+        });
       }
     }
     
@@ -117,7 +140,7 @@ function parseCopyResponse(response: string, mediaType: MediaType): GeneratedCop
   }
 }
 
-function validateCopies(copies: GeneratedCopy[], mediaType: MediaType): { copies: GeneratedCopy[], isValid: boolean, errors: string[] } {
+function validateCopies(copies: GeneratedCopy[], mediaType: MediaType, customGuideline?: any): { copies: GeneratedCopy[], isValid: boolean, errors: string[] } {
   const validatedCopies: GeneratedCopy[] = [];
   const allErrors: string[] = [];
 
@@ -126,32 +149,32 @@ function validateCopies(copies: GeneratedCopy[], mediaType: MediaType): { copies
 
     if (mediaType === 'naver') {
       if (copy.title) {
-        const titleValidation = validateCopy(copy.title, mediaType, 'title');
+        const titleValidation = validateCopy(copy.title, mediaType, 'title', customGuideline);
         if (!titleValidation.isValid) {
           copyErrors.push(...titleValidation.errors);
         }
       }
       if (copy.description) {
-        const descValidation = validateCopy(copy.description, mediaType, 'description');
+        const descValidation = validateCopy(copy.description, mediaType, 'description', customGuideline);
         if (!descValidation.isValid) {
           copyErrors.push(...descValidation.errors);
         }
       }
     } else if (mediaType === 'kakao') {
       if (copy.mainText) {
-        const mainValidation = validateCopy(copy.mainText, mediaType, 'main');
+        const mainValidation = validateCopy(copy.mainText, mediaType, 'main', customGuideline);
         if (!mainValidation.isValid) {
           copyErrors.push(...mainValidation.errors);
         }
       }
       if (copy.subText) {
-        const subValidation = validateCopy(copy.subText, mediaType, 'sub');
+        const subValidation = validateCopy(copy.subText, mediaType, 'sub', customGuideline);
         if (!subValidation.isValid) {
           copyErrors.push(...subValidation.errors);
         }
       }
     } else if (copy.fullText) {
-      const fullValidation = validateCopy(copy.fullText, mediaType, 'full');
+      const fullValidation = validateCopy(copy.fullText, mediaType, 'full', customGuideline);
       if (!fullValidation.isValid) {
         copyErrors.push(...fullValidation.errors);
       }

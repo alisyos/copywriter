@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { PromptsConfig, PromptData } from '../lib/prompts';
 import { MediaType } from '../types';
 
 const MEDIA_TYPE_LABELS = {
@@ -9,11 +8,34 @@ const MEDIA_TYPE_LABELS = {
   landing: '랜딩페이지 훅'
 };
 
+const PURPOSE_TYPE_LABELS = {
+  '리드 확보': '리드 확보',
+  '브랜드 인지도': '브랜드 인지도',
+  '클릭 유도': '클릭 유도',
+  '전환 증대': '전환 증대',
+  '상품 판매': '상품 판매',
+  '회원 가입': '회원 가입'
+};
+
+interface MediaPrompts {
+  [key: string]: string;
+}
+
+interface PurposePrompts {
+  [key: string]: string;
+}
+
+interface PromptsData {
+  media: MediaPrompts;
+  purpose: PurposePrompts;
+}
+
 export default function AdminPage() {
-  const [prompts, setPrompts] = useState<PromptsConfig | null>(null);
+  const [prompts, setPrompts] = useState<PromptsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [activeTab, setActiveTab] = useState<MediaType>('naver');
+  const [activeSection, setActiveSection] = useState<'media' | 'purpose'>('media');
+  const [activeTab, setActiveTab] = useState<string>('naver');
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // 프롬프트 데이터 로드
@@ -62,14 +84,14 @@ export default function AdminPage() {
     }
   };
 
-  const updatePrompt = (mediaType: MediaType, field: 'name' | 'prompt', value: string) => {
+  const updatePrompt = (section: 'media' | 'purpose', key: string, value: string) => {
     if (!prompts) return;
 
     setPrompts({
       ...prompts,
-      [mediaType]: {
-        ...prompts[mediaType],
-        [field]: value
+      [section]: {
+        ...prompts[section],
+        [key]: value
       }
     });
   };
@@ -77,6 +99,18 @@ export default function AdminPage() {
   const showMessage = (type: 'success' | 'error', text: string) => {
     setMessage({ type, text });
     setTimeout(() => setMessage(null), 3000);
+  };
+
+  const resetToDefaults = () => {
+    if (confirm('모든 프롬프트를 기본값으로 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+      // 기본 프롬프트로 리셋하는 API 호출
+      fetch('/api/admin/prompts/reset', { method: 'POST' })
+        .then(() => {
+          showMessage('success', '프롬프트가 기본값으로 초기화되었습니다.');
+          loadPrompts();
+        })
+        .catch(() => showMessage('error', '초기화에 실패했습니다.'));
+    }
   };
 
   if (loading) {
@@ -89,6 +123,9 @@ export default function AdminPage() {
       </div>
     );
   }
+
+  const currentLabels = activeSection === 'media' ? MEDIA_TYPE_LABELS : PURPOSE_TYPE_LABELS;
+  const currentPrompts = prompts?.[activeSection] || {};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50">
@@ -107,10 +144,19 @@ export default function AdminPage() {
                 <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent">
                   시스템 프롬프트 관리
                 </h1>
-                <p className="text-slate-600 mt-1">AI 모델의 시스템 프롬프트를 수정하고 관리하세요</p>
+                <p className="text-slate-600 mt-1">매체별 4개 + 광고목적별 6개 프롬프트를 관리하세요</p>
               </div>
             </div>
             <div className="flex items-center space-x-4">
+              <button
+                onClick={resetToDefaults}
+                className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg hover:from-orange-600 hover:to-red-600 transition-all duration-200 text-sm font-medium flex items-center space-x-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+                <span>초기화</span>
+              </button>
               <a
                 href="/"
                 className="bg-gradient-to-r from-slate-500 to-slate-600 text-white px-4 py-2 rounded-lg hover:from-slate-600 hover:to-slate-700 transition-all duration-200 text-sm font-medium flex items-center space-x-2"
@@ -167,15 +213,47 @@ export default function AdminPage() {
       )}
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* 탭 네비게이션 */}
+        {/* 섹션 선택 */}
         <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/40 mb-8">
-          <div className="flex space-x-1 bg-slate-100/80 rounded-xl p-1">
-            {Object.entries(MEDIA_TYPE_LABELS).map(([type, label]) => (
+          <div className="flex space-x-1 bg-slate-100/80 rounded-xl p-1 max-w-md">
+            <button
+              onClick={() => {
+                setActiveSection('media');
+                setActiveTab('naver');
+              }}
+              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeSection === 'media'
+                  ? 'bg-white text-indigo-600 shadow-md'
+                  : 'text-slate-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              매체별 프롬프트 (4개)
+            </button>
+            <button
+              onClick={() => {
+                setActiveSection('purpose');
+                setActiveTab('리드 확보');
+              }}
+              className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                activeSection === 'purpose'
+                  ? 'bg-white text-indigo-600 shadow-md'
+                  : 'text-slate-600 hover:text-indigo-600 hover:bg-white/50'
+              }`}
+            >
+              광고목적별 프롬프트 (6개)
+            </button>
+          </div>
+        </div>
+
+        {/* 하위 탭 네비게이션 */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl p-6 shadow-xl border border-white/40 mb-8">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2 bg-slate-100/80 rounded-xl p-1">
+            {Object.entries(currentLabels).map(([key, label]) => (
               <button
-                key={type}
-                onClick={() => setActiveTab(type as MediaType)}
-                className={`flex-1 py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
-                  activeTab === type
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`py-3 px-4 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  activeTab === key
                     ? 'bg-white text-indigo-600 shadow-md'
                     : 'text-slate-600 hover:text-indigo-600 hover:bg-white/50'
                 }`}
@@ -187,7 +265,7 @@ export default function AdminPage() {
         </div>
 
         {/* 프롬프트 편집 영역 */}
-        {prompts && prompts[activeTab] && (
+        {prompts && currentPrompts[activeTab] !== undefined && (
           <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-xl border border-white/40 overflow-hidden">
             <div className="p-8">
               <div className="flex items-center space-x-3 mb-6">
@@ -196,46 +274,37 @@ export default function AdminPage() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
                 </div>
-                <h2 className="text-2xl font-bold text-slate-800">
-                  {MEDIA_TYPE_LABELS[activeTab]} 프롬프트
-                </h2>
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-800">
+                    {(currentLabels as any)[activeTab]} 프롬프트
+                  </h2>
+                  <p className="text-slate-600 text-sm mt-1">
+                    {activeSection === 'media' ? '매체별' : '광고목적별'} 프롬프트를 수정하세요
+                  </p>
+                </div>
               </div>
 
               <div className="space-y-6">
-                {/* 이름 필드 */}
-                <div>
-                  <label className="block text-sm font-bold text-slate-700 mb-2">
-                    프롬프트 이름
-                  </label>
-                  <input
-                    type="text"
-                    value={prompts[activeTab].name}
-                    onChange={(e) => updatePrompt(activeTab, 'name', e.target.value)}
-                    className="w-full px-4 py-3 bg-white/70 border border-slate-200/60 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-slate-800 placeholder-slate-400"
-                    placeholder="프롬프트 이름을 입력하세요"
-                  />
-                </div>
-
                 {/* 프롬프트 내용 */}
                 <div>
                   <label className="block text-sm font-bold text-slate-700 mb-2">
-                    시스템 프롬프트
+                    {activeSection === 'media' ? '매체별' : '광고목적별'} 프롬프트
                   </label>
                   <textarea
-                    value={prompts[activeTab].prompt}
-                    onChange={(e) => updatePrompt(activeTab, 'prompt', e.target.value)}
-                    rows={20}
+                    value={currentPrompts[activeTab] || ''}
+                    onChange={(e) => updatePrompt(activeSection, activeTab, e.target.value)}
+                    rows={25}
                     className="w-full px-4 py-3 bg-white/70 border border-slate-200/60 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition-all duration-200 text-slate-800 placeholder-slate-400 font-mono text-sm leading-relaxed"
-                    placeholder="시스템 프롬프트를 입력하세요"
+                    placeholder="프롬프트를 입력하세요"
                   />
                 </div>
 
                 {/* 문자 수 표시 */}
                 <div className="flex justify-between items-center text-sm text-slate-500">
-                  <span>총 {prompts[activeTab].prompt.length}자</span>
+                  <span>총 {(currentPrompts[activeTab] || '').length}자</span>
                   <div className="flex items-center space-x-4">
-                    <span>라인 수: {prompts[activeTab].prompt.split('\n').length}</span>
-                    <span>단어 수: {prompts[activeTab].prompt.split(/\s+/).filter(word => word.length > 0).length}</span>
+                    <span>라인 수: {(currentPrompts[activeTab] || '').split('\n').length}</span>
+                    <span>단어 수: {(currentPrompts[activeTab] || '').split(/\s+/).filter(word => word.length > 0).length}</span>
                   </div>
                 </div>
               </div>
@@ -255,25 +324,32 @@ export default function AdminPage() {
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-700">✅ 권장사항</h4>
+              <h4 className="font-bold text-slate-700">📝 매체별 프롬프트</h4>
               <ul className="space-y-2 text-sm text-slate-600">
-                <li>• 명확하고 구체적인 지시사항 작성</li>
-                <li>• 출력 형식을 정확히 명시 (JSON 등)</li>
-                <li>• 금지사항을 명확히 나열</li>
-                <li>• 타겟 고객과 매체 특성 고려</li>
-                <li>• 예시를 통한 구체적 가이드</li>
+                <li>• 매체의 기술적 제약사항 포함 (글자 수 등)</li>
+                <li>• JSON 출력 형식 명시</li>
+                <li>• 매체별 특화된 작성 절차 설명</li>
+                <li>• {`{{광고목적프롬프트}}`} 플레이스홀더 필수 포함</li>
+                <li>• 사용자 입력 플레이스홀더 활용</li>
               </ul>
             </div>
             <div className="space-y-3">
-              <h4 className="font-bold text-slate-700">⚠️ 주의사항</h4>
+              <h4 className="font-bold text-slate-700">🎯 광고목적별 프롬프트</h4>
               <ul className="space-y-2 text-sm text-slate-600">
-                <li>• 너무 복잡하거나 모호한 지시 피하기</li>
-                <li>• 상충되는 요구사항 없도록 검토</li>
-                <li>• 정기적인 성능 모니터링 필요</li>
-                <li>• 법적/윤리적 가이드라인 준수</li>
-                <li>• 백업 후 수정 권장</li>
+                <li>• 목적에 맞는 구체적 전략 제시</li>
+                <li>• CTA 스타일 가이드라인 포함</li>
+                <li>• 타겟 행동 목표 명시</li>
+                <li>• 문구 톤앤매너 방향성 제시</li>
+                <li>• 성과 측정 관점 고려</li>
               </ul>
             </div>
+          </div>
+          <div className="mt-6 p-4 bg-blue-50/80 rounded-xl border border-blue-200/60">
+            <h4 className="font-bold text-blue-800 mb-2">💡 프롬프트 조합 방식</h4>
+                         <p className="text-sm text-blue-700">
+               매체별 프롬프트에서 {`{{광고목적프롬프트}}`} 부분이 선택된 광고목적별 프롬프트로 자동 치환됩니다. 
+               이를 통해 매체 특성과 광고 목적이 모두 반영된 맞춤형 프롬프트가 생성됩니다.
+             </p>
           </div>
         </div>
       </div>

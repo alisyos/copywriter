@@ -56,6 +56,8 @@ export interface MediaGuideline {
   descriptionMinLength?: number;
   mainMaxLength?: number;
   subMaxLength?: number;
+  fullTextMaxLength?: number;
+  fullTextMinLength?: number;
   prohibitedWords: string[];
   requiredElements: string[];
   specialRules: string[];

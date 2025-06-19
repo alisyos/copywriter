@@ -1,6 +1,5 @@
 import React from 'react';
 import { CopyResult, MediaType } from '../types';
-import { MEDIA_GUIDELINES } from '../lib/guidelines';
 
 interface Props {
   result: CopyResult | null;
@@ -34,10 +33,10 @@ export default function CopyResults({ result, error }: Props) {
 
   const getMediaTypeLabel = (mediaType: MediaType): string => {
     const labels = {
-      naver: '네이버 배너',
-      kakao: '카카오 비즈보드',
-      social: '인스타/페북 리드문',
-      landing: '상세페이지 후킹'
+      naver: '네이버 배너 광고',
+      kakao: '카카오톡 비즈보드',
+      social: '소셜미디어 리드광고',
+      landing: '랜딩페이지 훅'
     };
     return labels[mediaType];
   };
@@ -45,6 +44,26 @@ export default function CopyResults({ result, error }: Props) {
   const copyToClipboard = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       alert('클립보드에 복사되었습니다!');
+    });
+  };
+
+  const copyAllToClipboard = () => {
+    let allText = '';
+    
+    result.copies.forEach((copy, index) => {
+      allText += `${index + 1}. `;
+      
+      if (result.mediaType === 'naver') {
+        allText += `제목: ${copy.title}\n설명: ${copy.description}\n\n`;
+      } else if (result.mediaType === 'kakao') {
+        allText += `메인: ${copy.mainText}\n서브: ${copy.subText}\n\n`;
+      } else {
+        allText += `${copy.fullText}\n\n`;
+      }
+    });
+    
+    navigator.clipboard.writeText(allText.trim()).then(() => {
+      alert('모든 광고 문구가 클립보드에 복사되었습니다!');
     });
   };
 
@@ -59,7 +78,7 @@ export default function CopyResults({ result, error }: Props) {
               <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">{index + 1}</span>
               </div>
-              <h4 className="text-lg font-bold text-slate-800">네이버 배너 문구</h4>
+              <h4 className="text-lg font-bold text-slate-800">네이버 배너 광고 문구</h4>
             </div>
             <button
               onClick={() => copyToClipboard(`제목: ${copy.title}\n설명: ${copy.description}`)}
@@ -123,7 +142,7 @@ export default function CopyResults({ result, error }: Props) {
               <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center">
                 <span className="text-white font-bold text-sm">{index + 1}</span>
               </div>
-              <h4 className="text-lg font-bold text-slate-800">카카오 비즈보드 문구</h4>
+              <h4 className="text-lg font-bold text-slate-800">카카오톡 비즈보드 문구</h4>
             </div>
             <button
               onClick={() => copyToClipboard(`메인: ${copy.mainText}\n서브: ${copy.subText}`)}
@@ -188,7 +207,7 @@ export default function CopyResults({ result, error }: Props) {
                 <span className="text-white font-bold text-sm">{index + 1}</span>
               </div>
               <h4 className="text-lg font-bold text-slate-800">
-                {mediaType === 'social' ? '소셜미디어 문구' : '랜딩페이지 문구'}
+                {mediaType === 'social' ? '소셜미디어 리드광고 문구' : '랜딩페이지 훅 문구'}
               </h4>
             </div>
             <button
@@ -203,6 +222,14 @@ export default function CopyResults({ result, error }: Props) {
           </div>
           <div className="space-y-4">
             <div className="bg-gradient-to-r from-green-50/80 to-teal-50/80 backdrop-blur-sm rounded-xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-green-700">
+                  {mediaType === 'social' ? '소셜미디어 리드광고 문구' : '랜딩페이지 훅 문구'}
+                </span>
+                <span className="text-xs bg-green-100 text-green-600 px-2 py-1 rounded-full font-medium">
+                  {copy.fullText?.length || 0}자
+                </span>
+              </div>
               <p className="text-slate-800 font-medium leading-relaxed text-lg">{copy.fullText}</p>
             </div>
             
@@ -233,78 +260,34 @@ export default function CopyResults({ result, error }: Props) {
     }
   };
 
-  const guidelines = MEDIA_GUIDELINES[result.mediaType];
-
   return (
     <div className="space-y-6">
-      {/* 헤더 */}
-      <div className="bg-white/70 backdrop-blur-sm p-8 rounded-2xl shadow-xl border border-white/40">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-          </div>
-          <h2 className="text-2xl font-bold text-slate-800">
-            {getMediaTypeLabel(result.mediaType)} 광고 문구
-          </h2>
-        </div>
-        
-        {/* 가이드라인 정보 */}
-        <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 backdrop-blur-sm border border-blue-200/60 rounded-xl p-6 mb-6">
-          <div className="flex items-center space-x-2 mb-3">
-            <div className="w-6 h-6 bg-blue-600 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+      {/* 헤더와 생성된 문구들 */}
+      <div className="space-y-4">
+        {/* 헤더 */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-gradient-to-r from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
             </div>
-            <h3 className="font-bold text-blue-800">매체 가이드라인</h3>
+            <h2 className="text-2xl font-bold text-slate-800">
+              {getMediaTypeLabel(result.mediaType)} 광고 문구
+            </h2>
           </div>
-          <div className="text-sm text-blue-700 space-y-2">
-            {result.mediaType === 'naver' && (
-              <>
-                <p>• 제목: {guidelines.titleMinLength}-{guidelines.titleMaxLength}자</p>
-                <p>• 설명: {guidelines.descriptionMinLength}-{guidelines.descriptionMaxLength}자</p>
-              </>
-            )}
-            {result.mediaType === 'kakao' && (
-              <>
-                <p>• 메인: {guidelines.mainMaxLength}자 이내</p>
-                <p>• 서브: {guidelines.subMaxLength}자 이내</p>
-                <p>• 특수문자 사용 금지</p>
-              </>
-            )}
-            {guidelines.specialRules.map((rule, index) => (
-              <p key={index}>• {rule}</p>
-            ))}
-          </div>
+          
+          {/* 전체 복사 버튼 */}
+          <button
+            onClick={copyAllToClipboard}
+            className="bg-gradient-to-r from-indigo-500 to-purple-500 text-white px-3 py-2 rounded-lg hover:from-indigo-600 hover:to-purple-600 transition-all duration-200 text-sm font-medium flex items-center space-x-2 shadow-lg"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2v0M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2" />
+            </svg>
+            <span>전체 복사</span>
+          </button>
         </div>
-
-        {/* 검증 오류 표시 */}
-        {result.validationErrors && result.validationErrors.length > 0 && (
-          <div className="bg-gradient-to-r from-yellow-50/80 to-orange-50/80 backdrop-blur-sm border border-yellow-200/60 rounded-xl p-6 mb-6">
-            <div className="flex items-center space-x-2 mb-3">
-              <div className="w-6 h-6 bg-yellow-500 rounded-lg flex items-center justify-center">
-                <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
-                </svg>
-              </div>
-              <h3 className="font-bold text-yellow-800">주의사항</h3>
-            </div>
-            <ul className="text-sm text-yellow-700 space-y-2">
-              {result.validationErrors.map((error, index) => (
-                <li key={index} className="flex items-start space-x-2">
-                  <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full mt-2 flex-shrink-0"></div>
-                  <span>{error}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-      </div>
-
-      {/* 생성된 문구들 */}
-      <div className="space-y-4">
         {result.copies.length > 0 ? (
           result.copies.map((copy, index) => renderCopyItem(copy, index))
         ) : (

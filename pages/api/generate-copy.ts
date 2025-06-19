@@ -18,7 +18,7 @@ export default async function handler(
     }
 
     // 필수 필드 검증
-    const requiredFields = ['purpose', 'industry', 'brandName', 'targetAudience', 'tone'];
+    const requiredFields = ['purpose', 'industry', 'brandName', 'productService', 'targetAudience', 'tone'];
     const missingFields = requiredFields.filter(field => !formData[field as keyof FormData]);
     
     if (missingFields.length > 0) {
