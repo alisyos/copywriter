@@ -7,10 +7,10 @@ interface Props {
 }
 
 const MEDIA_OPTIONS = [
-  { value: 'naver', label: '네이버 배너' },
-  { value: 'kakao', label: '카카오 비즈보드' },
-  { value: 'social', label: '인스타/페북 리드문' },
-  { value: 'landing', label: '상세페이지 후킹' },
+  { value: 'naver', label: '네이버 배너 광고' },
+  { value: 'kakao', label: '카카오톡 비즈보드' },
+  { value: 'social', label: '소셜미디어 리드광고' },
+  { value: 'landing', label: '랜딩페이지 훅' },
 ];
 
 const PURPOSE_OPTIONS = [
